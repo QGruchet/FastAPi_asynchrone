@@ -1,4 +1,4 @@
-from fastapi import *
+from fastapi import FastAPI, Form
 from sqlalchemy import create_engine
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.ext.declarative import declarative_base
@@ -25,4 +25,4 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 @app.get("/")
 def read_root():
-    return {"message": "Hello, World"}
+    return {"message": "Hello "}
