@@ -3,6 +3,7 @@ import random
 
 import uvicorn as uvicorn
 from fastapi import FastAPI, BackgroundTasks, Request, Response, HTTPException
+from fastapi.responses import JSONResponse
 from fastapi.responses import RedirectResponse
 import pika
 import httpx
@@ -21,27 +22,26 @@ def envoye_commande():
 
     data = json.loads(contenu_json)
     data["commande_id"] = id_session
+    print(data)
 
     url = "http://127.0.0.1:8001/recevoir_commande/"
-
-    print(data)
 
     with httpx.Client() as client:
         response = client.post(url, json=data)
 
     if response.status_code == 200:
-        print("Commande passé avec succès !")
+        print("message client: Commande envoyée")
     else:
         print("j'en sais rien")
 
 
 @app.post("/confirmation_commande/")
 async def confirmation_commande(data: dict):
+    print("message client: " + "Commande confirmée")
     print(data)
-    print("message: " + "Commande confirmée")
 
 
-@app.post("/recevoir_devis")
+@app.get("/recevoir_devis")
 async def recevoir_devis():
     return {"message": "Devis reçu"}
 

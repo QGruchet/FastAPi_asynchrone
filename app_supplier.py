@@ -1,84 +1,104 @@
 import json
-from datetime import datetime
-from pydantic import BaseModel
-
-
+import threading
 import pika
 import uvicorn as uvicorn
 from fastapi import FastAPI, BackgroundTasks, Body
-from sqlalchemy import create_engine
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-import requests
+
 import httpx
 
 app = FastAPI()
 
-SQLALCHEMY_DATABASE_URL = "sqlite:///./test.db"
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-
-Base = declarative_base()
-
-Base.metadata.create_all(bind=engine)
-Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-session = Session()
-
-
-class Orders(Base):
-    __tablename__ = 'orders'
-
-    order_no = Column(Integer, primary_key=True)
-    user_name = Column(String(256), nullable=False)
-    status = Column(String(255), default=None)
-    created_at = Column(DateTime, default=None)
-    updated_at = Column(DateTime, default=None)
-    infoChecked = Column(Boolean, default=False)
-    infoChecked_at = Column(DateTime, default=None)
-    quoteCreated = Column(Boolean, default=False)
-    quoteCreated_at = Column(DateTime, default=None)
-    quoteConfirmation_at = Column(DateTime, default=None)
-    deliverySend = Column(Boolean, nullable=False, default=False)
-    deliverySend_at = Column(DateTime, default=None)
-    deliveryConfirmed = Column(Boolean, nullable=False, default=False)
-    deliveryConfirmed_at = Column(DateTime, default=None)
+connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+channel = connection.channel()
+channel.queue_declare(queue='command_queue')
+channel.queue_declare(queue='command_queue_conf')
+channel.queue_declare(queue='command_queue_devis')
 
 
 @app.post("/recevoir_commande/")
 async def recevoir_commande(data: dict, backgroundtask: BackgroundTasks):
-    print(data)
-    backgroundtask.add_task(verifier_commande, data, backgroundtask)
-    print('message from recevoir_commande : '+ 'Commande reçu avec succès')
+
+    channel.basic_publish(exchange='',
+                          routing_key='command_queue',
+                          body=json.dumps(data))
+
+    print(" [x] Message envoyé à la file d'attente 'command_queue'")
+    return {"message": "Commande reçue et envoyée à la file d'attente"}
 
 
-def verifier_commande(data: dict, backgroundtask: BackgroundTasks):
-    data["commande_id"] = data["commande_id"] + 1
-    print(data)
-    backgroundtask.add_task(confirmer_commande, data)
-    return {'message from verifier commande': 'Commande vérifié avec succès !'}
+def verifier_commande(data: dict):
+    for valeur in data.values():
+        if not isinstance(valeur, (str, int)) or data["server_id"] > 10000:
+            raise ValueError("Le type de la valeur {} est {} au lieu de str ou int".format(valeur, type(valeur)))
+    print("message serveur: " + "Commande verifié")
+    channel.basic_publish(exchange='',
+                          routing_key='command_queue_conf',
+                          body=json.dumps(data))
+    print(" [x] Message envoyé à la file d'attente 'command_queue_conf'")
 
-@app.get("/confirmer_commande")
+
+@app.post("/confirmer_commande")
 def confirmer_commande(data: dict):
-    data["commande_id"] = data["commande_id"] + 1
+
+    channel.basic_publish(exchange='',
+                          routing_key='command_queue_devis',
+                          body=json.dumps(data))
+
+    print(" [x] Message envoyé à la file d'attente 'command_queue_devis'")
+
     url = "http://127.0.0.1:8002/confirmation_commande/"
-    print(data)
     with httpx.Client() as client:
         response = client.post(url, json=data)
 
     if response.status_code == 200:
         pass
 
-# @app.post("/generer_devis")
-# async def generer_devis():
-#     # Logique de génération de devis asynchrone
-#     return {"message": "Devis généré"}
-#
-#
-# @app.post("/confirmer_realisation")
-# async def confirmer_realisation():
-#     # Logique de confirmation de réalisation asynchrone
-#     return {"message": "Réalisation confirmée"}
+    return {"message": "Commande envoyée à la file d'attente"}
 
+
+def generer_devis(data: dict):
+    print("message serveur: " + "Devis généré")
+
+
+def start_rabbitmq_consumer():
+    consumer_connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
+    consumer_channel = consumer_connection.channel()
+    consumer_channel.queue_declare(queue='command_queue')
+    consumer_channel.queue_declare(queue='command_queue_conf')
+    consumer_channel.queue_declare(queue='command_queue_devis')
+
+    def consumer_callback_verif(ch, method, properties, body):
+        print(" [x] Received %r" % body)
+        verifier_commande(json.loads(body.decode('utf-8')))
+
+    def consumer_callback_conf(ch, method, properties, body):
+        print(" [x] Received %r" % body)
+        confirmer_commande(json.loads(body.decode('utf-8')))
+
+    def consumer_callback_devis(ch, method, properties, body):
+        print(" [x] Received %r" % body)
+        generer_devis(json.loads(body.decode('utf-8')))
+
+    consumer_channel.basic_consume(queue='command_queue',
+                                   on_message_callback=consumer_callback_verif,
+                                   auto_ack=True)
+
+    consumer_channel.basic_consume(queue='command_queue_conf',
+                                   on_message_callback=consumer_callback_conf,
+                                   auto_ack=True)
+
+    consumer_channel.basic_consume(queue='command_queue_devis',
+                                   on_message_callback=consumer_callback_devis,
+                                   auto_ack=True)
+
+    print(' [*] En attente de commandes...')
+    consumer_channel.start_consuming()
+
+
+@app.on_event("startup")
+async def startup_event():
+    thread = threading.Thread(target=start_rabbitmq_consumer)
+    thread.start()
 
 if __name__ == '__main__':
     uvicorn.run(app, port=8001)
