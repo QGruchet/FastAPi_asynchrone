@@ -37,11 +37,13 @@ def verifier_commande(data: dict):
         if not isinstance(valeur, (str, int)) or data["server_id"] > 10000:
             raise ValueError("Le type de la valeur {} est {} au lieu de str ou int".format(valeur, type(valeur)))
     print("message serveur: " + "Commande verifié")
+
     publish_channel.basic_publish(exchange='',
                           routing_key='command_queue_conf',
                           body=json.dumps(data))
-    print(" [x] Message envoyé à la file d'attente 'command_queue_conf'")
 
+    print(" [x] Message envoyé à la file d'attente 'command_queue_conf'")
+    return {"message": "Commande vérifiée et envoyée à la file d'attente"}
 
 @app.post("/confirmer_commande")
 def confirmer_commande(data: dict):

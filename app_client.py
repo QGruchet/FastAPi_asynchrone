@@ -19,10 +19,10 @@ app.add_middleware(
 )
 
 
-@app.get("/envoye_commande")
-def envoye_commande():
+@app.get("/envoye_commande/{id_order}")
+def envoye_commande(id_order: str):
     # Lecture du contenu du fichier JSON
-    with open('order.json', 'r') as order:
+    with open(f'{id_order}.json', 'r') as order:
         contenu_json = order.read()
 
     id_session = random.randint(1, 500)
@@ -44,8 +44,9 @@ def envoye_commande():
 
 
 @app.post("/confirmation_commande/")
-async def confirmation_commande():
+def confirmation_commande():
     print("message client: " + "Commande confirmée")
+    return {"message": "Commande confirmée"}
 
 
 @app.post("/recevoir_devis/")
@@ -57,6 +58,7 @@ async def recevoir_devis(data: dict):
         confirmer_devis_au_serveur(data)
     else:
         print("Devis refusé")
+
 
 def confirmer_devis_au_serveur(devis):
     url = "http://127.0.0.1:8001/confirmer_devis"
@@ -70,7 +72,6 @@ def confirmer_devis_au_serveur(devis):
 
 @app.post("/confirmation_devis")
 async def confirmation_commande():
-    # Logique de confirmation de commande asynchrone
     return {"message": "Devis confirmée"}
 
 
