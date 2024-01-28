@@ -19,17 +19,16 @@ app.add_middleware(
 )
 
 
-@app.get("/envoye_commande/{id_order}")
-def envoye_commande(id_order: str):
+@app.get("/envoye_commande/{name_order}")
+def envoye_commande(name_order: str):
     # Lecture du contenu du fichier JSON
-    with open(f'{id_order}.json', 'r') as order:
+    with open(f'{name_order}.json', 'r') as order:
         contenu_json = order.read()
 
-    id_session = random.randint(1, 500)
+    id_session = random.randint(1, 50000)
 
     data = json.loads(contenu_json)
     data["commande_id"] = id_session
-    print(data)
 
     url = "http://127.0.0.1:8001/recevoir_commande/"
 
@@ -37,42 +36,61 @@ def envoye_commande(id_order: str):
         response = client.post(url, json=data)
 
     if response.status_code == 200:
-        print("message client: Commande envoyée")
+        print(f'Commande n°{id_session} envoyée !')
 
     else:
         print("message client: Erreur lors de l'envoi de la commande")
 
 
 @app.post("/confirmation_commande/")
-def confirmation_commande():
-    print("message client: " + "Commande confirmée")
+def confirmation_commande(data: dict):
+    print(f'Commande n°{data["commande_id"]} confirmée !')
     return {"message": "Commande confirmée"}
 
 
 @app.post("/recevoir_devis/")
 async def recevoir_devis(data: dict):
-    print("message client: " + "Devis reçu")
-    print(data)
-    conf_devis = input("Voulez-vous confirmer le devis ? (oui/non) : ")
+    print(f'Devis n°{data["commande_id"]} reçue !')
+    conf_devis = input(f'Voulez-vous confirmer le devis suivant (n°{data["commande_id"]}) ? (oui/non) : \n {data} \n')
     if conf_devis == "oui":
         confirmer_devis_au_serveur(data)
     else:
-        print("Devis refusé")
+        print(f'Devis n°{data["commande_id"]} refusé !')
+        refus = {"message_client": "Devis refusé", "commande_id": data["commande_id"]}
+        confirmer_devis_au_serveur(refus)
+
 
 
 def confirmer_devis_au_serveur(devis):
-    url = "http://127.0.0.1:8001/confirmer_devis"
+    url = "http://127.0.0.1:8001/faire_reparation"
     with httpx.Client() as client:
         response = client.post(url, json=devis, timeout=None)
         if response.status_code == 200:
-            print("Devis confirmé avec succès")
+            print(f'Devis n°{devis["commande_id"]} renvoyé !')
         else:
-            print("Erreur lors de la confirmation du devis")
+            print(f'Erreur lors de la confirmation du devis n°{devis["commande_id"]}')
 
 
-@app.post("/confirmation_devis")
-async def confirmation_commande():
-    return {"message": "Devis confirmée"}
+@app.post("/recevoir_realisation/")
+async def recevoir_realisation(data: dict):
+    print(f'Travaux n°{data["commande_id"]} effectué !')
+    conf_real = input("Les travaux ont-ils été effectués ? (oui/non) : \n")
+    if conf_real == "oui":
+        confirmer_realisation_au_serveur(data)
+    else:
+        print(f'Réalisation n°{data["commande_id"]} non conforme !')
+        refus = {"message_client": "Réalisation non conforme", "commande_id": data["commande_id"]}
+        confirmer_realisation_au_serveur(refus)
+
+
+def confirmer_realisation_au_serveur(devis):
+    url = "http://127.0.0.1:8001/confirmer_realisation"
+    with httpx.Client() as client:
+        response = client.post(url, json=devis, timeout=None)
+        if response.status_code == 200:
+            print(f'Fin de la commande : n°{devis["commande_id"]} !')
+        else:
+            print(f'Erreur lors de la confirmation de la realisation n°{devis["commande_id"]}')
 
 
 if __name__ == '__main__':
