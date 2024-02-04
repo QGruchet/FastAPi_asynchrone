@@ -49,6 +49,7 @@ class Orders(Base):
     deliverySend_at = Column(DateTime, default=None)
     deliveryConfirmed = Column(Boolean, nullable=False, default=False)
     deliveryConfirmed_at = Column(DateTime, default=None)
+    orderEnd = Column(Boolean, nullable=False, default=False)
 
 
 class OrdersDetails(Base):
@@ -129,7 +130,7 @@ async def confirmer_commande(data: dict):
 
 @app.post("/generer_devis", response_class=HTMLResponse)
 async def generer_devis(data: dict):
-    data['estimation_duree_semaines'] = random.randint(1, 5)
+    data['estimation_duree_semaines'] = random.randint(1, 15)
     data['TVA'] = 0.20
     data['prix'] = random.randint(300, 5000)
     data['Main_doeuvre'] = random.randint(100, 500)
@@ -212,7 +213,7 @@ async def faire_reparation(data: dict):
         print(f' [x] Devis n°{data["commande_id"]} refusé !')
         order.status = "Quote Refused"
         order.updated_at = datetime.now()
-
+        order.orderEnd = True
         session.commit()
     else:
         # Update du tuple dans la table orders
@@ -252,6 +253,7 @@ async def confirmer_realisation(data: dict):
         print(f' [x] Réalisation n°{data["commande_id"]} non conforme !')
         order.status = "Delivery Refused"
         order.updated_at = datetime.now()
+        order.orderEnd = True
 
         session.commit()
     else:
@@ -260,6 +262,7 @@ async def confirmer_realisation(data: dict):
         order.updated_at = datetime.now()
         order.deliveryConfirmed = True
         order.deliveryConfirmed_at = datetime.now()
+        order.orderEnd = True
 
         session.commit()
 
