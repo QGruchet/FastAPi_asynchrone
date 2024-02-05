@@ -1,10 +1,9 @@
 import streamlit as st
-import sqlalchemy
 import pandas as pd
-import matplotlib.pyplot as plt
 
 
 def show_orders(engine):
+    # Fonction pour charger les données
     def load_data(query):
 
         return pd.read_sql_query(query, engine)

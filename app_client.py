@@ -6,7 +6,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 import httpx
 
-
 app = FastAPI()
 
 # Configurez CORS
@@ -19,6 +18,7 @@ app.add_middleware(
 )
 
 
+# Fonction pour envoyer une commande
 @app.get("/envoye_commande/{name_order}")
 def envoye_commande(name_order: str):
     # Lecture du contenu du fichier JSON
@@ -42,12 +42,14 @@ def envoye_commande(name_order: str):
         print("message client: Erreur lors de l'envoi de la commande")
 
 
+# Fonction pour recevoir la confirmation de la commande
 @app.post("/confirmation_commande/")
 def confirmation_commande(data: dict):
     print(f'Commande n°{data["commande_id"]} confirmée !')
     return {"message": "Commande confirmée"}
 
 
+# Fonction pour recevoir le devis
 @app.post("/recevoir_devis/")
 async def recevoir_devis(data: dict):
     print(f'Devis n°{data["commande_id"]} reçue !')
@@ -60,7 +62,7 @@ async def recevoir_devis(data: dict):
         confirmer_devis_au_serveur(refus)
 
 
-
+# Fonction pour confirmer le devis au fournisseur
 def confirmer_devis_au_serveur(devis):
     url = "http://127.0.0.1:8001/faire_reparation"
     with httpx.Client() as client:
@@ -71,6 +73,7 @@ def confirmer_devis_au_serveur(devis):
             print(f'Erreur lors de la confirmation du devis n°{devis["commande_id"]}')
 
 
+# Fonction pour recevoir la réalisation de la commande
 @app.post("/recevoir_realisation/")
 async def recevoir_realisation(data: dict):
     print(f'Travaux n°{data["commande_id"]} effectué !')
@@ -83,6 +86,7 @@ async def recevoir_realisation(data: dict):
         confirmer_realisation_au_serveur(refus)
 
 
+# Fonction pour confirmer la réalisation au fournisseur
 def confirmer_realisation_au_serveur(devis):
     url = "http://127.0.0.1:8001/confirmer_realisation"
     with httpx.Client() as client:

@@ -30,6 +30,7 @@ Session = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 session = Session()
 
 
+# Configuration de la table orders de la base de données
 class Orders(Base):
     __tablename__ = 'orders'
 
@@ -52,6 +53,7 @@ class Orders(Base):
     orderEnd = Column(Boolean, nullable=False, default=False)
 
 
+# Configuration de la table orders_details de la base de données
 class OrdersDetails(Base):
     __tablename__ = 'orders_details'
 
@@ -66,6 +68,7 @@ class OrdersDetails(Base):
     prix_TTC = Column(Float, nullable=None)
 
 
+# Fonction pour recevoir une commande
 @app.post("/recevoir_commande/")
 async def recevoir_commande(data: dict):
 
@@ -95,6 +98,7 @@ async def recevoir_commande(data: dict):
     return {"message": "Commande reçue et envoyée à la file d'attente"}
 
 
+# Fonction pour vérifier une commande
 async def verifier_commande(data: dict):
     for valeur in data.values():
         if not isinstance(valeur, (str, int)) or data["server_id"] > 10000:
@@ -115,6 +119,7 @@ async def verifier_commande(data: dict):
     return {"message": "Commande vérifiée et envoyée à la file d'attente"}
 
 
+# Fonction pour envoyer la confirmation de la commande au client
 @app.post("/confirmer_commande")
 async def confirmer_commande(data: dict):
 
@@ -128,6 +133,8 @@ async def confirmer_commande(data: dict):
     if response.status_code == 200:
         pass
 
+
+# Fonction pour générer un devis
 @app.post("/generer_devis", response_class=HTMLResponse)
 async def generer_devis(data: dict):
     data['estimation_duree_semaines'] = random.randint(1, 15)
@@ -151,6 +158,7 @@ async def generer_devis(data: dict):
     await send_message_to_queue('verif_devis_queue', data)
 
 
+# Fonction pour vérifier un devis
 @app.post("verif_devis")
 async def verif_devis(data: dict):
     while True:
@@ -195,7 +203,7 @@ async def verif_devis(data: dict):
     await send_message_to_queue('envoie_devis_queue', data)
 
 
-
+# Fonction pour envoyer le devis au client
 @app.post("/envoie_devis")
 async def envoie_devis(data: dict):
     url = "http://127.0.0.1:8002/recevoir_devis/"
@@ -205,6 +213,7 @@ async def envoie_devis(data: dict):
         pass
 
 
+# Fonction pour recevoir la confirmation du devis et faire la réalisation
 @app.post("/faire_reparation")
 async def faire_reparation(data: dict):
     order = session.query(Orders).filter(Orders.order_no == data["commande_id"]).first()
@@ -226,6 +235,7 @@ async def faire_reparation(data: dict):
         return {"message": "Confirmation de devis reçue"}
 
 
+# Fonction pour envoyer la réalisation de la commande au client
 @app.post("/envoie_delivery_confirmation")
 async def envoie_realisation(data: dict):
 
@@ -245,6 +255,7 @@ async def envoie_realisation(data: dict):
         pass
 
 
+# Fonction pour recevoir la confirmation du client de la réalisation
 @app.post("/confirmer_realisation")
 async def confirmer_realisation(data: dict):
     order = session.query(Orders).filter(Orders.order_no == data["commande_id"]).first()
@@ -269,6 +280,7 @@ async def confirmer_realisation(data: dict):
         print(f'Fin de la commande n°{data["commande_id"]} !')
 
 
+# Fonction pour envoyer un message à une file d'attente
 async def send_message_to_queue(queue_name, data):
     connection = await aio_pika.connect_robust("amqp://guest:guest@localhost/")
 
@@ -282,6 +294,7 @@ async def send_message_to_queue(queue_name, data):
         await channel.default_exchange.publish(message, routing_key=queue_name)
 
 
+# Fonction pour démarrer le consommateur RabbitMQ et définir les queues
 async def start_rabbitmq_consumer():
     connection = await aio_pika.connect_robust("amqp://guest:guest@localhost/")
 

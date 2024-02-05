@@ -1,31 +1,38 @@
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
+
 import streamlit as st
 import plotly.express as px
 
 
 def show_analyze(engine):
-    st.sidebar.write("\n" * 2000)
 
+    # Bouton pour rafraîchir les données
+    st.sidebar.write("\n" * 2000)
     if st.sidebar.button('Rafraîchir les données'):
         st.experimental_rerun()
 
+    # Fonction pour charger les données depuis la base de données
     def load_data(query):
+
         return pd.read_sql_query(query, engine)
 
+    # Charger les données de la table orders depuis la base de données
     query = "SELECT * FROM orders"
     data = load_data(query)
 
+    # Charger les données de la table orders_details depuis la base de données
     query = "SELECT * FROM orders_details"
     data_details = load_data(query)
 
     # Fonction pour tracer les statistiques des commandes par statut
     def plot_order_status(data):
+
         status_counts = data['status'].value_counts()
         st.bar_chart(status_counts)
 
+    # Fonction pour tracer les pourcentages des commandes par statut
     def plot_order_status_purcent(data):
+
         # Compter le nombre de commandes avec différents statuts
         confirmed_count = len(data[data['status'] == 'Delivery Confirmed'])
         refused_count = len(data[data['status'].isin(['Delivery Refused'])])
@@ -53,12 +60,14 @@ def show_analyze(engine):
         avg_time_str = f"{avg_time}s"
         st.metric(label="Temps moyen de la commande (en secondes)", value=avg_time_str)
 
+    # Afficher le nombres des commandes ouvertes et fermées
     st.header('Nombre de commandes ouvertes et fermées')
     open_count = len(data[data['orderEnd'] == 0])
     closed_count = len(data[data['orderEnd'] == 1])
     st.write(f"Nombre de commandes ouvertes : {open_count}")
     st.write(f"Nombre de commandes fermées : {closed_count}")
 
+    # Fonctionpour afficher les status des commandes sous forme de graphique
     with st.expander('Voir sous forme de graphique'):
         # Créer un graphique à barres avec Plotly Express
         fig = px.bar(x=['Open Orders', 'Closed Orders'], y=[open_count, closed_count],
@@ -73,7 +82,7 @@ def show_analyze(engine):
         # Afficher le graphique dans Streamlit
         st.plotly_chart(fig, use_container_width=True)
 
-
+    # Afficher les status des commandes sous forme de graphique
     st.header('Statut des Commandes')
     col1, col2 = st.columns(2, gap="large")
     with col1:
@@ -81,9 +90,11 @@ def show_analyze(engine):
     with col2:
         plot_order_status_purcent(data)
 
+    # Afficher le temps moyen de traitement de la commande
     st.header('Temps moyen du traitement de la commande')
     plot_quote_confirmation_time(data)
 
+    # Fonction pour calculer le temps moyen entre étapes du processus de commande
     def time_difference(data1, data2, label, flag):
         dif = {}
         data1 = pd.to_datetime(data1, errors='coerce')
@@ -95,6 +106,7 @@ def show_analyze(engine):
             st.metric(label=label, value=avg_time_str)
         return avg_time
 
+    # Afficher les délais de la commande entre chaque étape sous forme textuelle
     with st.expander("Voir les détails"):
         label = 'Temps moyen entre la récéption et le traitement de la commande'
         time_difference(data['created_at'], data['infoChecked_at'], label, True)
@@ -114,6 +126,7 @@ def show_analyze(engine):
         label = 'Temps moyen entre la livraison et la confirmation de la livraison'
         time_difference(data['deliverySend_at'], data['deliveryConfirmed_at'], label, True)
 
+    # Afficher les délais de la commande entre chaque étape sous forme de graphique
     with st.expander('Voir sous forme de graphiques'):
         times_data = []
 
@@ -152,10 +165,12 @@ def show_analyze(engine):
         # Utiliser st.plotly_chart pour afficher le graphique dans Streamlit
         st.plotly_chart(fig, use_container_width=True)
 
+    # Afficher les prix moyens des commandes
     st.header('Prix moyen des commandes')
     avg_price = data_details['prix_TTC'].mean().round(3)
     avg_price_str = f"{avg_price}€"
     st.metric(label="Prix moyen des commandes (en euros)", value=avg_price_str)
+
 
     def avg_price(data, label):
         avg_price = data.mean().round(3)

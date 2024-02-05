@@ -5,15 +5,19 @@ import pandas as pd
 
 def show_details_orders(engine):
 
+    # Fonction pour charger les données
     def load_data(query):
         return pd.read_sql_query(query, engine)
 
+    # Fonction pour ajouter le symbole €
     def add_euros(val):
         return f'{val}€'
 
+    # Fonction pour ajouter le symbole %
     def add_purcent(val):
         return f'{val}%'
 
+    # Fonction pour ajouter le mot semaines
     def add_week(val):
         return f'{val} semaines'
 
