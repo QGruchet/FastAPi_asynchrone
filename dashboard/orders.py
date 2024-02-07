@@ -15,6 +15,7 @@ def show_orders(engine):
 
     query = "SELECT * FROM orders"
     data = load_data(query)
+    data['order_no'] = data['order_no'].astype('str')
     st.write(data)
 
 

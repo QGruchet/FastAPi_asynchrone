@@ -4,7 +4,7 @@ import threading
 import random
 import uvicorn as uvicorn
 
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
 from fastapi.responses import HTMLResponse
 
 import httpx
@@ -17,6 +17,7 @@ from sqlalchemy import Column, Integer, String, Boolean, DateTime, Float
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from datetime import datetime
+
 
 app = FastAPI()
 
@@ -171,7 +172,7 @@ async def verif_devis(data: dict):
                 data['prix'] = input("Entrez le nouveau prix: ")
             elif champs_modif.lower() == 'main_doeuvre':
                 data['Main_doeuvre'] = input("Entrez le nouveau prix de la main d'oeuvre: ")
-            elif champs_modif.lower() == 'estimation_durée_semaines':
+            elif champs_modif.lower() == 'estimation_duree_semaines':
                 data['estimattion_durée_semaines_'] = input("Entrez la nouvelle estimation de durée en semaines: ")
             else:
                 print("Champ invalide")
