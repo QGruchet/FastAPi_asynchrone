@@ -75,6 +75,12 @@ async def recevoir_commande(data: dict):
 
     data["commande_id"] = random.randint(1, 50000)
 
+    existing_record = session.query(Orders).filter(Orders.order_no == data["commande_id"]).first()
+
+    while existing_record is not None:
+        data["commande_id"] = random.randint(1, 50000)
+        existing_record = session.query(Orders).filter(Orders.order_no == data["commande_id"]).first()
+
     # Nouveau tuple dans la table orders
     new_order = Orders(
         order_no=data["commande_id"],
