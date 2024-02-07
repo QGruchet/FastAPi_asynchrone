@@ -73,6 +73,8 @@ class OrdersDetails(Base):
 @app.post("/recevoir_commande/")
 async def recevoir_commande(data: dict):
 
+    data["commande_id"] = random.randint(1, 50000)
+
     # Nouveau tuple dans la table orders
     new_order = Orders(
         order_no=data["commande_id"],

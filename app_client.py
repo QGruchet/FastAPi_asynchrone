@@ -25,10 +25,7 @@ def envoye_commande(name_order: str):
     with open(f'{name_order}.json', 'r') as order:
         contenu_json = order.read()
 
-    id_session = random.randint(1, 50000)
-
     data = json.loads(contenu_json)
-    data["commande_id"] = id_session
 
     url = "http://127.0.0.1:8001/recevoir_commande/"
 
@@ -36,7 +33,7 @@ def envoye_commande(name_order: str):
         response = client.post(url, json=data)
 
     if response.status_code == 200:
-        print(f'Commande n°{id_session} envoyée !')
+        print(f'Commande envoyée !')
 
     else:
         print("message client: Erreur lors de l'envoi de la commande")
